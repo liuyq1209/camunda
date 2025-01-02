@@ -15,6 +15,7 @@ import io.camunda.authentication.handler.AuthFailureHandler;
 import io.camunda.authentication.handler.CustomMethodSecurityExpressionHandler;
 import io.camunda.security.configuration.MultiTenancyConfiguration;
 import io.camunda.service.AuthorizationServices;
+import io.camunda.service.RoleServices;
 import io.camunda.service.TenantServices;
 import io.camunda.service.UserServices;
 import org.slf4j.Logger;
@@ -49,7 +50,10 @@ public class WebSecurityConfig {
         // endpoints defined in BrokerHealthRoutes
         "/ready",
         "/health",
-        "/startup"
+        "/startup",
+        // deprecated Tasklist v1 Public Endpoints
+        "/v1/external/process/**",
+        "/new/**"
       };
   private static final Logger LOG = LoggerFactory.getLogger(WebSecurityConfig.class);
 
@@ -65,8 +69,10 @@ public class WebSecurityConfig {
   public CamundaUserDetailsService camundaUserDetailsService(
       final UserServices userServices,
       final AuthorizationServices authorizationServices,
+      final RoleServices roleServices,
       final TenantServices tenantServices) {
-    return new CamundaUserDetailsService(userServices, authorizationServices, tenantServices);
+    return new CamundaUserDetailsService(
+        userServices, authorizationServices, roleServices, tenantServices);
   }
 
   @Bean

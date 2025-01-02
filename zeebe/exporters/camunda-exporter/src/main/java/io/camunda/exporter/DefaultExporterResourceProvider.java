@@ -50,6 +50,7 @@ import io.camunda.exporter.handlers.RoleMemberRemovedHandler;
 import io.camunda.exporter.handlers.SequenceFlowHandler;
 import io.camunda.exporter.handlers.TaskCompletedMetricHandler;
 import io.camunda.exporter.handlers.TenantCreateUpdateHandler;
+import io.camunda.exporter.handlers.TenantDeletedHandler;
 import io.camunda.exporter.handlers.TenantEntityAddedHandler;
 import io.camunda.exporter.handlers.TenantEntityRemovedHandler;
 import io.camunda.exporter.handlers.UserCreatedUpdatedHandler;
@@ -105,15 +106,19 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
 
   private Set<ExportHandler<?, ?>> exportHandlers;
 
+  private ExporterMetadata exporterMetadata;
+
   @Override
   public void init(
       final ExporterConfiguration configuration,
       final ExporterEntityCacheProvider entityCacheProvider,
-      final MeterRegistry meterRegistry) {
+      final MeterRegistry meterRegistry,
+      final ExporterMetadata exporterMetadata) {
     final var globalPrefix = configuration.getIndex().getPrefix();
     final var isElasticsearch =
         ConnectionTypes.isElasticSearch(configuration.getConnect().getType());
     indexDescriptors = new IndexDescriptors(globalPrefix, isElasticsearch);
+    this.exporterMetadata = exporterMetadata;
 
     final var processCache =
         new ExporterEntityCacheImpl<>(
@@ -145,6 +150,8 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
             new AuthorizationHandler(
                 indexDescriptors.get(AuthorizationIndex.class).getFullQualifiedName()),
             new TenantCreateUpdateHandler(
+                indexDescriptors.get(TenantIndex.class).getFullQualifiedName()),
+            new TenantDeletedHandler(
                 indexDescriptors.get(TenantIndex.class).getFullQualifiedName()),
             new TenantEntityAddedHandler(
                 indexDescriptors.get(TenantIndex.class).getFullQualifiedName()),
@@ -210,9 +217,13 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
             new EventFromProcessMessageSubscriptionHandler(
                 indexDescriptors.get(EventTemplate.class).getFullQualifiedName(), false),
             new UserTaskHandler(
-                indexDescriptors.get(TaskTemplate.class).getFullQualifiedName(), formCache),
+                indexDescriptors.get(TaskTemplate.class).getFullQualifiedName(),
+                formCache,
+                exporterMetadata),
             new UserTaskJobBasedHandler(
-                indexDescriptors.get(TaskTemplate.class).getFullQualifiedName(), formCache),
+                indexDescriptors.get(TaskTemplate.class).getFullQualifiedName(),
+                formCache,
+                exporterMetadata),
             new UserTaskProcessInstanceHandler(
                 indexDescriptors.get(TaskTemplate.class).getFullQualifiedName()),
             new UserTaskVariableHandler(

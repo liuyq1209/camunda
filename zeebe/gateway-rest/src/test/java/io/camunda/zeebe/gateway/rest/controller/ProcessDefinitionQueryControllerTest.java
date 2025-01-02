@@ -57,7 +57,7 @@ public class ProcessDefinitionQueryControllerTest extends RestControllerTest {
   static final String PROCESS_DEFINITION_ENTITY_JSON =
       """
       {
-          "processDefinitionKey": 23,
+          "processDefinitionKey": "23",
           "name": "Complex process",
           "processDefinitionId": "complexProcess",
           "resourceName": "complexProcess.bpmn",
@@ -70,7 +70,7 @@ public class ProcessDefinitionQueryControllerTest extends RestControllerTest {
       {
           "items": [
               {
-                  "processDefinitionKey": 1,
+                  "processDefinitionKey": "1",
                   "name": "Complex process",
                   "processDefinitionId": "complexProcess",
                   "resourceName": "complexProcess.bpmn",
@@ -81,7 +81,7 @@ public class ProcessDefinitionQueryControllerTest extends RestControllerTest {
           ],
           "page": {
               "totalItems": 1,
-              "firstSortValues": ["v"],
+              "firstSortValues": ["f"],
               "lastSortValues": [
                   "v"
               ]
@@ -102,12 +102,13 @@ public class ProcessDefinitionQueryControllerTest extends RestControllerTest {
                       "alpha",
                       "<default>",
                       "formId")))
-          .sortValues(new Object[] {"v"})
+          .firstSortValues(new Object[] {"f"})
+          .lastSortValues(new Object[] {"v"})
           .build();
   private static final String FORM_ITEM_JSON =
       """
       {
-        "formKey": 0,
+        "formKey": "0",
         "tenantId": "tenant-1",
         "bpmnId": "formId",
         "schema": "schema",

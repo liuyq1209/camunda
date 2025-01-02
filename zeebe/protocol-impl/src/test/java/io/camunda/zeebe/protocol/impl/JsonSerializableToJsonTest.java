@@ -248,6 +248,7 @@ final class JsonSerializableToJsonTest {
               }
             ],
             "decisionsMetadata": [],
+            "resourceMetadata":[],
             "decisionRequirementsMetadata": [],
             "formMetadata": [],
             "tenantId": "<default>",
@@ -297,6 +298,7 @@ final class JsonSerializableToJsonTest {
               "resources": [],
               "decisionRequirementsMetadata": [],
               "processesMetadata": [],
+              "resourceMetadata":[],
               "decisionsMetadata": [],
               "formMetadata": [],
               "tenantId": "<default>",
@@ -435,6 +437,7 @@ final class JsonSerializableToJsonTest {
               "versionTag": "v1.0"
             }
           ],
+          "resourceMetadata":[],
           "tenantId": "<default>",
           "deploymentKey": 1234
         }
@@ -470,6 +473,7 @@ final class JsonSerializableToJsonTest {
           "decisionsMetadata": [],
           "decisionRequirementsMetadata": [],
           "formMetadata": [],
+          "resourceMetadata":[],
           "tenantId": "<default>",
           "deploymentKey": -1
         }
@@ -2268,6 +2272,7 @@ final class JsonSerializableToJsonTest {
             "decisionsMetadata": [],
             "decisionRequirementsMetadata": [],
             "formMetadata": [],
+            "resourceMetadata":[],
             "tenantId": "<default>",
             "deploymentKey": -1
           }
@@ -2963,12 +2968,14 @@ final class JsonSerializableToJsonTest {
                 new MappingRecord()
                     .setMappingKey(1L)
                     .setClaimName("claimName")
-                    .setClaimValue("claimValue"),
+                    .setClaimValue("claimValue")
+                    .setName("name"),
         """
       {
         "mappingKey": 1,
         "claimName": "claimName",
-        "claimValue": "claimValue"
+        "claimValue": "claimValue",
+        "name": "name"
       }
       """
       },
@@ -2982,7 +2989,8 @@ final class JsonSerializableToJsonTest {
       {
         "mappingKey": -1,
         "claimName": "",
-        "claimValue": ""
+        "claimValue": "",
+        "name": ""
       }
       """
       },
@@ -3017,7 +3025,19 @@ final class JsonSerializableToJsonTest {
                             .setPassword("qux")
                             .setUserType(UserType.REGULAR))
                     .setDefaultTenant(
-                        new TenantRecord().setTenantKey(5).setTenantId("id").setName("name")),
+                        new TenantRecord().setTenantKey(5).setTenantId("id").setName("name"))
+                    .addMapping(
+                        new MappingRecord()
+                            .setMappingKey(6)
+                            .setClaimName("claim1")
+                            .setClaimValue("value1")
+                            .setName("Claim 1"))
+                    .addMapping(
+                        new MappingRecord()
+                            .setMappingKey(7)
+                            .setClaimName("claim2")
+                            .setClaimValue("value2")
+                            .setName("Claim 2")),
         """
       {
         "defaultRole": {
@@ -3050,7 +3070,21 @@ final class JsonSerializableToJsonTest {
           "name": "name",
           "entityKey": -1,
           "entityType": "UNSPECIFIED"
-        }
+        },
+        "mappings": [
+          {
+            "mappingKey": 6,
+            "claimName": "claim1",
+            "claimValue": "value1",
+            "name": "Claim 1"
+          },
+          {
+            "mappingKey": 7,
+            "claimName": "claim2",
+            "claimValue": "value2",
+            "name": "Claim 2"
+          }
+        ]
       }
       """
       },
@@ -3075,7 +3109,8 @@ final class JsonSerializableToJsonTest {
               "name": "",
               "entityKey": -1,
               "entityType": "UNSPECIFIED"
-          }
+          },
+          "mappings": []
       }
       """
       },

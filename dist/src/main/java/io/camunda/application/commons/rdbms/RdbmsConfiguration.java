@@ -36,12 +36,14 @@ import io.camunda.db.rdbms.sql.IncidentMapper;
 import io.camunda.db.rdbms.sql.MappingMapper;
 import io.camunda.db.rdbms.sql.ProcessDefinitionMapper;
 import io.camunda.db.rdbms.sql.ProcessInstanceMapper;
+import io.camunda.db.rdbms.sql.PurgeMapper;
 import io.camunda.db.rdbms.sql.RoleMapper;
 import io.camunda.db.rdbms.sql.TenantMapper;
 import io.camunda.db.rdbms.sql.UserMapper;
 import io.camunda.db.rdbms.sql.UserTaskMapper;
 import io.camunda.db.rdbms.sql.VariableMapper;
 import io.camunda.db.rdbms.write.RdbmsWriterFactory;
+import io.camunda.search.connect.configuration.DatabaseConfig;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -49,7 +51,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(prefix = "camunda.database", name = "type", havingValue = "rdbms")
+@ConditionalOnProperty(
+    prefix = "camunda.database",
+    name = "type",
+    havingValue = DatabaseConfig.RDBMS)
 @Import(MyBatisConfiguration.class)
 public class RdbmsConfiguration {
 
@@ -142,8 +147,9 @@ public class RdbmsConfiguration {
   @Bean
   public RdbmsWriterFactory rdbmsWriterFactory(
       final SqlSessionFactory sqlSessionFactory,
-      final ExporterPositionMapper exporterPositionMapper) {
-    return new RdbmsWriterFactory(sqlSessionFactory, exporterPositionMapper);
+      final ExporterPositionMapper exporterPositionMapper,
+      final PurgeMapper purgeMapper) {
+    return new RdbmsWriterFactory(sqlSessionFactory, exporterPositionMapper, purgeMapper);
   }
 
   @Bean

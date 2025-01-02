@@ -31,10 +31,11 @@ import static io.camunda.zeebe.gateway.rest.validator.UserTaskRequestValidator.v
 import static io.camunda.zeebe.gateway.rest.validator.UserValidator.validateUserCreateRequest;
 import static io.camunda.zeebe.gateway.rest.validator.UserValidator.validateUserUpdateRequest;
 
-import com.google.monitoring.v3.UpdateGroupRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.camunda.authentication.entity.CamundaUser;
 import io.camunda.authentication.tenant.TenantAttributeHolder;
 import io.camunda.document.api.DocumentMetadataModel;
+import io.camunda.search.entities.RoleEntity;
 import io.camunda.security.auth.Authentication;
 import io.camunda.security.auth.Authentication.Builder;
 import io.camunda.service.AuthorizationServices.PatchAuthorizationRequest;
@@ -90,6 +91,7 @@ import io.camunda.zeebe.gateway.protocol.rest.UserTaskAssignmentRequest;
 import io.camunda.zeebe.gateway.protocol.rest.UserTaskCompletionRequest;
 import io.camunda.zeebe.gateway.protocol.rest.UserTaskUpdateRequest;
 import io.camunda.zeebe.gateway.protocol.rest.UserUpdateRequest;
+import io.camunda.zeebe.gateway.rest.validator.DocumentValidator;
 import io.camunda.zeebe.gateway.rest.validator.GroupRequestValidator;
 import io.camunda.zeebe.gateway.rest.validator.RoleRequestValidator;
 import io.camunda.zeebe.gateway.rest.validator.TenantRequestValidator;
@@ -105,6 +107,7 @@ import io.camunda.zeebe.protocol.record.value.AuthorizationResourceType;
 import io.camunda.zeebe.protocol.record.value.PermissionAction;
 import io.camunda.zeebe.protocol.record.value.PermissionType;
 import io.camunda.zeebe.util.Either;
+import jakarta.servlet.http.Part;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -118,6 +121,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.agrona.concurrent.UnsafeBuffer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -320,7 +324,7 @@ public class RequestMapper {
   public static Either<ProblemDetail, DocumentCreateRequest> toDocumentCreateRequest(
       final String documentId,
       final String storeId,
-      final MultipartFile file,
+      final Part file,
       final DocumentMetadata metadata) {
     final InputStream inputStream;
     try {
@@ -333,6 +337,58 @@ public class RequestMapper {
     return getResult(
         validationResponse,
         () -> new DocumentCreateRequest(documentId, storeId, inputStream, internalMetadata));
+  }
+
+  public static Either<ProblemDetail, List<DocumentCreateRequest>> toDocumentCreateRequestBatch(
+      final List<Part> parts, final String storeId, final ObjectMapper objectMapper) {
+    final Map<Part, DocumentMetadata> metadataMap =
+        parts.stream()
+            .collect(
+                Collectors.toMap(
+                    part -> part,
+                    part ->
+                        Optional.ofNullable(part.getHeader("X-Document-Metadata"))
+                            .map(
+                                header -> {
+                                  try {
+                                    return objectMapper.readValue(header, DocumentMetadata.class);
+                                  } catch (final IOException e) {
+                                    throw new RuntimeException(e);
+                                  }
+                                })
+                            .orElse(new DocumentMetadata())));
+
+    final ProblemDetail validationErrors =
+        metadataMap.values().stream()
+            .map(DocumentValidator::validateDocumentMetadata)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .reduce( // combine violations from each problem detail
+                ProblemDetail.forStatus(HttpStatus.BAD_REQUEST),
+                (acc, detail) -> {
+                  acc.setDetail(acc.getDetail() + ". " + detail.getDetail());
+                  return acc;
+                });
+
+    if (validationErrors.getDetail() != null) {
+      return Either.left(validationErrors);
+    }
+
+    final var requests = new HashMap<Part, DocumentCreateRequest>();
+    for (final var part : parts) {
+      final var metadata = metadataMap.get(part);
+      final InputStream inputStream;
+      try {
+        inputStream = part.getInputStream();
+      } catch (final IOException e) {
+        return Either.left(createInternalErrorProblemDetail(e, "Failed to read document content"));
+      }
+      requests.put(
+          part,
+          new DocumentCreateRequest(
+              null, storeId, inputStream, toInternalDocumentMetadata(metadata, part)));
+    }
+    return Either.right(List.copyOf(requests.values()));
   }
 
   public static Either<ProblemDetail, DocumentLinkParams> toDocumentLinkParams(
@@ -359,7 +415,7 @@ public class RequestMapper {
       final MappingRuleCreateRequest request) {
     return getResult(
         validateMappingRequest(request),
-        () -> new MappingDTO(request.getClaimName(), request.getClaimValue()));
+        () -> new MappingDTO(request.getClaimName(), request.getClaimValue(), request.getName()));
   }
 
   public static <BrokerResponseT> CompletableFuture<ResponseEntity<Object>> executeServiceMethod(
@@ -463,6 +519,7 @@ public class RequestMapper {
 
   public static Authentication getAuthentication() {
     Long authenticatedUserKey = null;
+    final List<Long> authenticatedRoleKeys = new ArrayList<>();
     final List<String> authorizedTenants = TenantAttributeHolder.getTenantIds();
 
     final var token =
@@ -479,6 +536,8 @@ public class RequestMapper {
       if (requestAuthentication.getPrincipal()
           instanceof final CamundaUser authenticatedPrincipal) {
         authenticatedUserKey = authenticatedPrincipal.getUserKey();
+        authenticatedRoleKeys.addAll(
+            authenticatedPrincipal.getRoles().stream().map(RoleEntity::roleKey).toList());
         token.withClaim(Authorization.AUTHORIZED_USER_KEY, authenticatedUserKey);
       }
 
@@ -494,7 +553,20 @@ public class RequestMapper {
     return new Builder()
         .token(token.build())
         .user(authenticatedUserKey)
+        .roleKeys(authenticatedRoleKeys)
         .tenants(authorizedTenants)
+        .build();
+  }
+
+  public static Authentication getAnonymousAuthentication() {
+    return new Builder()
+        .token(
+            Authorization.jwtEncoder()
+                .withIssuer(JwtAuthorizationBuilder.DEFAULT_ISSUER)
+                .withAudience(JwtAuthorizationBuilder.DEFAULT_AUDIENCE)
+                .withSubject(JwtAuthorizationBuilder.DEFAULT_SUBJECT)
+                .withClaim(Authorization.AUTHORIZED_ANONYMOUS_USER, true)
+                .build())
         .build();
   }
 
@@ -531,11 +603,17 @@ public class RequestMapper {
   }
 
   private static DocumentMetadataModel toInternalDocumentMetadata(
-      final DocumentMetadata metadata, final MultipartFile file) {
+      final DocumentMetadata metadata, final Part file) {
 
     if (metadata == null) {
       return new DocumentMetadataModel(
-          file.getContentType(), file.getOriginalFilename(), null, file.getSize(), Map.of());
+          file.getContentType(),
+          file.getSubmittedFileName(),
+          null,
+          file.getSize(),
+          null,
+          null,
+          Map.of());
     }
     final OffsetDateTime expiresAt;
     if (metadata.getExpiresAt() == null || metadata.getExpiresAt().isBlank()) {
@@ -544,12 +622,18 @@ public class RequestMapper {
       expiresAt = OffsetDateTime.parse(metadata.getExpiresAt());
     }
     final var fileName =
-        Optional.ofNullable(metadata.getFileName()).orElse(file.getOriginalFilename());
+        Optional.ofNullable(metadata.getFileName()).orElse(file.getSubmittedFileName());
     final var contentType =
         Optional.ofNullable(metadata.getContentType()).orElse(file.getContentType());
 
     return new DocumentMetadataModel(
-        contentType, fileName, expiresAt, file.getSize(), metadata.getCustomProperties());
+        contentType,
+        fileName,
+        expiresAt,
+        file.getSize(),
+        metadata.getProcessDefinitionId(),
+        metadata.getProcessInstanceKey(),
+        metadata.getCustomProperties());
   }
 
   private static DeployResourcesRequest createDeployResourceRequest(
@@ -725,9 +809,7 @@ public class RequestMapper {
 
     if (jobResultCorrections.getAssignee() != null) {
       corrections.setAssignee(jobResultCorrections.getAssignee());
-      // `UserTaskRecord.ASSIGNEE` will be available after merging
-      // https://github.com/camunda/camunda/pull/25663 to the `main` branch
-      correctedAttributes.add("assignee");
+      correctedAttributes.add(UserTaskRecord.ASSIGNEE);
     }
     if (jobResultCorrections.getDueDate() != null) {
       corrections.setDueDate(jobResultCorrections.getDueDate());

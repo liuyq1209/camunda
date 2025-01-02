@@ -58,7 +58,7 @@ public class RoleQueryControllerTest extends RestControllerTest {
             """
             {
               "name": "Role Name",
-              "key": 100
+              "key": "100"
             }""");
 
     // then
@@ -103,7 +103,8 @@ public class RoleQueryControllerTest extends RestControllerTest {
         .thenReturn(
             new SearchQueryResult.Builder<RoleEntity>()
                 .total(3)
-                .sortValues(new Object[] {})
+                .firstSortValues(new Object[] {"f"})
+                .lastSortValues(new Object[] {"v"})
                 .items(
                     List.of(
                         new RoleEntity(100L, "Role 1"),
@@ -129,22 +130,22 @@ public class RoleQueryControllerTest extends RestControllerTest {
           {
              "items": [
                {
-                 "key": 100,
+                 "key": "100",
                  "name": "Role 1"
                },
                {
-                 "key": 200,
+                 "key": "200",
                  "name": "Role 2"
                },
                {
-                 "key": 300,
+                 "key": "300",
                  "name": "Role 12"
                }
              ],
              "page": {
                "totalItems": 3,
-               "firstSortValues": [],
-               "lastSortValues": []
+               "firstSortValues": ["f"],
+               "lastSortValues": ["v"]
              }
            }""");
 
