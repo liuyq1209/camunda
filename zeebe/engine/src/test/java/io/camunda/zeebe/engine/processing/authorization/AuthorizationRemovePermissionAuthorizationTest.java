@@ -59,7 +59,7 @@ public class AuthorizationRemovePermissionAuthorizationTest {
     // given
     final var resourceId = "resourceId";
     final var resourceType = AuthorizationResourceType.DEPLOYMENT;
-    final var permissionType = PermissionType.DELETE;
+    final var permissionType = PermissionType.CREATE;
     final var userKey = createUser();
     addPermissionsToUser(userKey, resourceType, permissionType, resourceId);
 

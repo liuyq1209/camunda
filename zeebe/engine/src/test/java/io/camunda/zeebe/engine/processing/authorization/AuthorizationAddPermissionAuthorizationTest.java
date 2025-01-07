@@ -66,7 +66,7 @@ public class AuthorizationAddPermissionAuthorizationTest {
         .permission()
         .withOwnerKey(userKey)
         .withResourceType(AuthorizationResourceType.DEPLOYMENT)
-        .withPermission(PermissionType.DELETE, "*")
+        .withPermission(PermissionType.CREATE, "*")
         .add(defaultUserKey);
 
     // then
@@ -89,7 +89,7 @@ public class AuthorizationAddPermissionAuthorizationTest {
         .permission()
         .withOwnerKey(userKey)
         .withResourceType(AuthorizationResourceType.DEPLOYMENT)
-        .withPermission(PermissionType.DELETE, "*")
+        .withPermission(PermissionType.CREATE, "*")
         .add(userKey);
 
     // then

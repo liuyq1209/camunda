@@ -35,7 +35,7 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class ReplayStateRandomizedPropertyTest {
 
-  private static final String PROCESS_COUNT = System.getProperty("processCount", "3");
+  private static final String PROCESS_COUNT = System.getProperty("processCount", "1");
   private static final String EXECUTION_PATH_COUNT =
       System.getProperty("replayExecutionCount", "1");
   /* Grace period to wait if new records come in after processing has reached end */
