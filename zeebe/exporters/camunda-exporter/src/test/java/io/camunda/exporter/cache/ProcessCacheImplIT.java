@@ -20,7 +20,6 @@ import io.camunda.exporter.config.ExporterConfiguration;
 import io.camunda.exporter.config.ExporterConfiguration.IndexSettings;
 import io.camunda.exporter.schema.elasticsearch.ElasticsearchEngineClient;
 import io.camunda.exporter.schema.opensearch.OpensearchEngineClient;
-import io.camunda.exporter.utils.XMLUtil;
 import io.camunda.search.connect.es.ElasticsearchConnector;
 import io.camunda.search.connect.os.OpensearchConnector;
 import io.camunda.webapps.schema.descriptors.operate.index.ProcessIndex;
@@ -156,7 +155,7 @@ class ProcessCacheImplIT {
     return new ProcessCacheArgument(
         new ExporterEntityCacheImpl(
             10,
-            new ElasticSearchProcessCacheLoader(elsClient, indexName, new XMLUtil()),
+            new ElasticSearchProcessCacheLoader(elsClient, indexName),
             new ExporterCacheMetrics("ES", new SimpleMeterRegistry())),
         ProcessCacheImplIT::indexInElasticSearch);
   }
@@ -165,7 +164,7 @@ class ProcessCacheImplIT {
     return new ProcessCacheArgument(
         new ExporterEntityCacheImpl(
             10,
-            new OpenSearchProcessCacheLoader(osClient, indexName, new XMLUtil()),
+            new OpenSearchProcessCacheLoader(osClient, indexName),
             new ExporterCacheMetrics("OS", new SimpleMeterRegistry())),
         ProcessCacheImplIT::indexInOpenSearch);
   }
