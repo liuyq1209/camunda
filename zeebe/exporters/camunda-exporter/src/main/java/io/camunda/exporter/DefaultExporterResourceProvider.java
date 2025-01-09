@@ -64,6 +64,8 @@ import io.camunda.exporter.handlers.VariableHandler;
 import io.camunda.exporter.handlers.operation.OperationFromIncidentHandler;
 import io.camunda.exporter.handlers.operation.OperationFromProcessInstanceHandler;
 import io.camunda.exporter.handlers.operation.OperationFromVariableDocumentHandler;
+import io.camunda.exporter.notifier.IncidentNotifier;
+import io.camunda.exporter.notifier.M2mTokenManager;
 import io.camunda.exporter.utils.XMLUtil;
 import io.camunda.webapps.schema.descriptors.IndexDescriptor;
 import io.camunda.webapps.schema.descriptors.IndexDescriptors;
@@ -134,6 +136,9 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
                 indexDescriptors.get(FormIndex.class).getFullQualifiedName()),
             new ExporterCacheMetrics("form", meterRegistry));
 
+    final M2mTokenManager m2mTokenManager = new M2mTokenManager(configuration.getNotifier());
+    final IncidentNotifier incidentNotifier =
+        new IncidentNotifier(m2mTokenManager, processCache, configuration.getNotifier());
     exportHandlers =
         Set.of(
             new RoleCreateUpdateHandler(
@@ -191,7 +196,8 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
             new IncidentHandler(
                 indexDescriptors.get(IncidentTemplate.class).getFullQualifiedName(),
                 false,
-                processCache),
+                processCache,
+                incidentNotifier),
             new SequenceFlowHandler(
                 indexDescriptors.get(SequenceFlowTemplate.class).getFullQualifiedName()),
             new DecisionEvaluationHandler(
