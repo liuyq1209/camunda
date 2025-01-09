@@ -57,6 +57,7 @@ jobs:
     secrets: inherit
     with:
       branch: ${{ github.head_ref }}
+      pushDocker: true
 
   es-schema-integrity-test:
     name: Elasticsearch Schema Integrity Test
