@@ -193,7 +193,8 @@ public class OpensearchEngineClientIT {
 
     // when
     final var mappings =
-        opensearchEngineClient.getMappings("index_qualified_name*", MappingSource.INDEX);
+        opensearchEngineClient.getMappings(
+            "index_qualified_name-" + TEST_CONTEXT_MARKER, MappingSource.INDEX);
 
     // then
     assertThat(mappings.size()).isEqualTo(1);
