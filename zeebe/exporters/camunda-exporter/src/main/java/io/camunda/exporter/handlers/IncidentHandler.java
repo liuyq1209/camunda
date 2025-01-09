@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +139,7 @@ public class IncidentHandler implements ExportHandler<IncidentEntity, IncidentRe
     }
 
     if (Objects.equals(intent, IncidentIntent.CREATED)) {
-      incidentNotifier.notifyOnIncidents(List.of(entity));
+      CompletableFuture.runAsync(() -> incidentNotifier.notifyOnIncidents(List.of(entity)));
     }
   }
 
