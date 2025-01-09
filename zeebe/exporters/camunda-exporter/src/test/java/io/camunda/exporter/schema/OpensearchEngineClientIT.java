@@ -58,7 +58,10 @@ public class OpensearchEngineClientIT {
     // given
     final var descriptor =
         SchemaTestUtil.mockIndex(
-            "qualified_name", "alias", "index_name-" + TEST_CONTEXT_MARKER, "/mappings.json");
+            "qualified_name-" + TEST_CONTEXT_MARKER,
+            "alias-" + TEST_CONTEXT_MARKER,
+            "index_name-" + TEST_CONTEXT_MARKER,
+            "/mappings.json");
 
     // when
     final var indexSettings = new IndexSettings();
@@ -66,7 +69,10 @@ public class OpensearchEngineClientIT {
 
     // then
     final var index =
-        openSearchClient.indices().get(req -> req.index("qualified_name")).get("qualified_name");
+        openSearchClient
+            .indices()
+            .get(req -> req.index("qualified_name-" + TEST_CONTEXT_MARKER))
+            .get("qualified_name-" + TEST_CONTEXT_MARKER);
 
     SchemaTestUtil.validateMappings(index.mappings(), "/mappings.json");
 
