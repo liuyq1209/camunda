@@ -20,9 +20,11 @@ import io.camunda.zeebe.protocol.record.Record;
 import io.camunda.zeebe.protocol.record.RecordAssert;
 import io.camunda.zeebe.protocol.record.RejectionType;
 import io.camunda.zeebe.protocol.record.intent.ResourceDeletionIntent;
+import io.camunda.zeebe.protocol.record.value.EntityType;
 import io.camunda.zeebe.protocol.record.value.TenantOwned;
 import io.camunda.zeebe.test.util.BrokerClassRuleHelper;
 import io.camunda.zeebe.test.util.record.RecordingExporter;
+import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,8 +45,20 @@ public class TenantAwareResourceDeletionTest {
   @Test
   public void shouldDeleteProcessForAuthorizedTenant() {
     // given
+    final var username = UUID.randomUUID().toString();
+    final var tenantId = UUID.randomUUID().toString();
+    final var userKey = ENGINE.user().newUser(username).create().getValue().getUserKey();
+    final var tenantKey =
+        ENGINE.tenant().newTenant().withTenantId(tenantId).create().getValue().getTenantKey();
+    ENGINE
+        .tenant()
+        .addEntity(tenantKey)
+        .withEntityType(EntityType.USER)
+        .withEntityKey(userKey)
+        .add();
+
     final var deployment =
-        ENGINE.deployment().withXmlResource(PROCESS).withTenantId(tenantIdA).deploy();
+        ENGINE.deployment().withXmlResource(PROCESS).withTenantId(tenantId).deploy();
     final var resourceKey =
         deployment.getValue().getProcessesMetadata().get(0).getProcessDefinitionKey();
 
@@ -53,22 +67,33 @@ public class TenantAwareResourceDeletionTest {
         ENGINE
             .resourceDeletion()
             .withResourceKey(resourceKey)
-            .withAuthorizedTenantIds(tenantIdA)
-            .delete();
+            .delete(userKey);
 
     // then
-    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantIdA);
+    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantId);
     verifyResourceIsDeleted(resourceKey);
   }
 
   @Test
   public void shouldDeleteDecisionForAuthorizedTenant() {
     // given
+    final var username = UUID.randomUUID().toString();
+    final var tenantId = UUID.randomUUID().toString();
+    final var userKey = ENGINE.user().newUser(username).create().getValue().getUserKey();
+    final var tenantKey =
+        ENGINE.tenant().newTenant().withTenantId(tenantId).create().getValue().getTenantKey();
+    ENGINE
+        .tenant()
+        .addEntity(tenantKey)
+        .withEntityType(EntityType.USER)
+        .withEntityKey(userKey)
+        .add();
+
     final var deployment =
         ENGINE
             .deployment()
             .withXmlClasspathResource(DRG_SINGLE_DECISION)
-            .withTenantId(tenantIdA)
+            .withTenantId(tenantId)
             .deploy();
     final var resourceKey =
         deployment.getValue().getDecisionRequirementsMetadata().get(0).getDecisionRequirementsKey();
@@ -78,19 +103,30 @@ public class TenantAwareResourceDeletionTest {
         ENGINE
             .resourceDeletion()
             .withResourceKey(resourceKey)
-            .withAuthorizedTenantIds(tenantIdA)
-            .delete();
+            .delete(userKey);
 
     // then
-    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantIdA);
+    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantId);
     verifyResourceIsDeleted(resourceKey);
   }
 
   @Test
   public void shouldDeleteFormForAuthorizedTenant() {
     // given
+    final var username = UUID.randomUUID().toString();
+    final var tenantId = UUID.randomUUID().toString();
+    final var userKey = ENGINE.user().newUser(username).create().getValue().getUserKey();
+    final var tenantKey =
+        ENGINE.tenant().newTenant().withTenantId(tenantId).create().getValue().getTenantKey();
+    ENGINE
+        .tenant()
+        .addEntity(tenantKey)
+        .withEntityType(EntityType.USER)
+        .withEntityKey(userKey)
+        .add();
+
     final var deployment =
-        ENGINE.deployment().withXmlClasspathResource(TEST_FORM_1).withTenantId(tenantIdA).deploy();
+        ENGINE.deployment().withXmlClasspathResource(TEST_FORM_1).withTenantId(tenantId).deploy();
     final var resourceKey = deployment.getValue().getFormMetadata().get(0).getFormKey();
 
     // when
@@ -98,11 +134,10 @@ public class TenantAwareResourceDeletionTest {
         ENGINE
             .resourceDeletion()
             .withResourceKey(resourceKey)
-            .withAuthorizedTenantIds(tenantIdA)
-            .delete();
+            .delete(userKey);
 
     // then
-    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantIdA);
+    Assertions.assertThat(deleted.getValue()).hasTenantId(tenantId);
     verifyResourceIsDeleted(resourceKey);
   }
 
@@ -119,7 +154,6 @@ public class TenantAwareResourceDeletionTest {
         ENGINE
             .resourceDeletion()
             .withResourceKey(resourceKey)
-            .withAuthorizedTenantIds(tenantIdB)
             .expectRejection()
             .delete();
 

@@ -20,8 +20,10 @@ import io.camunda.zeebe.protocol.record.intent.ProcessInstanceIntent;
 import io.camunda.zeebe.protocol.record.intent.TimerIntent;
 import io.camunda.zeebe.protocol.record.value.BpmnElementType;
 import io.camunda.zeebe.protocol.record.value.BpmnEventType;
+import io.camunda.zeebe.protocol.record.value.EntityType;
 import io.camunda.zeebe.test.util.record.RecordingExporter;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.function.Consumer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -172,12 +174,22 @@ public class TenantAwareTimerStartEventTest {
                 .exists())
         .isTrue();
 
+    final var username = UUID.randomUUID().toString();
+    final var userKey = engine.user().newUser(username).create().getValue().getUserKey();
+    final var tenantKey =
+        engine.tenant().newTenant().withTenantId(TENANT).create().getValue().getTenantKey();
+    engine
+        .tenant()
+        .addEntity(tenantKey)
+        .withEntityType(EntityType.USER)
+        .withEntityKey(userKey)
+        .add();
+
     // when
     engine
         .resourceDeletion()
         .withResourceKey(processDefinitionKey)
-        .withAuthorizedTenantIds(TENANT)
-        .delete();
+        .delete(userKey);
 
     // then
     final var canceledEvent =
@@ -191,14 +203,25 @@ public class TenantAwareTimerStartEventTest {
   public void shouldRecreateTimerWhenDeletingLatestProcessDefinition() {
     // given
     assertThat(
-            RecordingExporter.timerRecords(TimerIntent.CREATED)
-                .withProcessDefinitionKey(processDefinitionKey)
-                .exists())
+        RecordingExporter.timerRecords(TimerIntent.CREATED)
+            .withProcessDefinitionKey(processDefinitionKey)
+            .exists())
         .isTrue();
+
+    final var username = UUID.randomUUID().toString();
+    final var userKey = engine.user().newUser(username).create().getValue().getUserKey();
+    final var tenantKey =
+        engine.tenant().newTenant().withTenantId(TENANT).create().getValue().getTenantKey();
+    engine
+        .tenant()
+        .addEntity(tenantKey)
+        .withEntityType(EntityType.USER)
+        .withEntityKey(userKey)
+        .add();
 
     final var process = processWithTimerStartEvent(c -> c.timerWithCycle("R/PT1M"));
     final var deployment =
-        engine.deployment().withXmlResource(process).withTenantId(TENANT).deploy();
+        engine.deployment().withXmlResource(process).withTenantId(TENANT).deploy(userKey);
     final var latestProcessDefinitionKey =
         deployment.getValue().getProcessesMetadata().get(0).getProcessDefinitionKey();
 
@@ -206,8 +229,7 @@ public class TenantAwareTimerStartEventTest {
     engine
         .resourceDeletion()
         .withResourceKey(latestProcessDefinitionKey)
-        .withAuthorizedTenantIds(TENANT)
-        .delete();
+        .delete(userKey);
 
     // then
     final var canceledEvent =

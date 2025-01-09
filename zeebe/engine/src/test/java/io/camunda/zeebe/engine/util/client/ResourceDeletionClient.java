@@ -36,7 +36,6 @@ public class ResourceDeletionClient {
   private final CommandWriter writer;
   private final ResourceDeletionRecord resourceDeletionRecord = new ResourceDeletionRecord();
   private Function<Long, Record<ResourceDeletionRecordValue>> expectation = SUCCESS_EXPECTATION;
-  private List<String> authorizedTenantIds = List.of(TenantOwned.DEFAULT_TENANT_IDENTIFIER);
 
   public ResourceDeletionClient(final CommandWriter writer) {
     this.writer = writer;
@@ -47,17 +46,11 @@ public class ResourceDeletionClient {
     return this;
   }
 
-  public ResourceDeletionClient withAuthorizedTenantIds(final String... tenantIds) {
-    authorizedTenantIds = List.of(tenantIds);
-    return this;
-  }
-
   public Record<ResourceDeletionRecordValue> delete() {
     final long position =
         writer.writeCommand(
             ResourceDeletionIntent.DELETE,
-            resourceDeletionRecord,
-            authorizedTenantIds.toArray(new String[0]));
+            resourceDeletionRecord);
     return expectation.apply(position);
   }
 
