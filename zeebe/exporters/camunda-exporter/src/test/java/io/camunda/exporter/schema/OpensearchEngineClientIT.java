@@ -76,7 +76,7 @@ public class OpensearchEngineClientIT {
 
     SchemaTestUtil.validateMappings(index.mappings(), "/mappings.json");
 
-    assertThat(index.aliases().keySet()).isEqualTo(Set.of("alias"));
+    assertThat(index.aliases().keySet()).isEqualTo(Set.of("alias-" + TEST_CONTEXT_MARKER));
     assertThat(index.settings().index().numberOfReplicas())
         .isEqualTo(indexSettings.getNumberOfReplicas().toString());
     assertThat(index.settings().index().numberOfShards())
@@ -193,7 +193,7 @@ public class OpensearchEngineClientIT {
 
     // when
     final var mappings =
-        opensearchEngineClient.getMappings("*" + TEST_CONTEXT_MARKER + "*", MappingSource.INDEX);
+        opensearchEngineClient.getMappings(TEST_CONTEXT_MARKER, MappingSource.INDEX);
 
     // then
     assertThat(mappings.size()).isEqualTo(1);
