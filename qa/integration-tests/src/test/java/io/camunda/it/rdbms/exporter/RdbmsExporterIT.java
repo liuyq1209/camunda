@@ -600,7 +600,7 @@ class RdbmsExporterIT {
             AuthorizationResourceType.PROCESS_DEFINITION,
             Map.of(
                 PermissionType.READ, Set.of("resource1", "resource2"),
-                PermissionType.CREATE, Set.of("resource3", "resource4")));
+                PermissionType.DELETE, Set.of("resource3", "resource4")));
 
     // when
     exporter.export(authorizationRecord);
@@ -626,7 +626,7 @@ class RdbmsExporterIT {
             AuthorizationResourceType.PROCESS_DEFINITION,
             Map.of(
                 PermissionType.READ, Set.of("resource5", "resource6"),
-                PermissionType.CREATE, Set.of("resource7", "resource8")));
+                PermissionType.DELETE, Set.of("resource7", "resource8")));
 
     // when
     exporter.export(authorizationUpdatedRecord);
@@ -651,7 +651,7 @@ class RdbmsExporterIT {
     assertThat(updatedAuthorization.permissions())
         .contains(
             new Permission(
-                PermissionType.CREATE, Set.of("resource3", "resource4", "resource7", "resource8")));
+                PermissionType.DELETE, Set.of("resource3", "resource4", "resource7", "resource8")));
   }
 
   @Test
@@ -665,7 +665,7 @@ class RdbmsExporterIT {
             AuthorizationResourceType.DECISION_REQUIREMENTS_DEFINITION,
             Map.of(
                 PermissionType.READ, Set.of("resource1", "resource2"),
-                PermissionType.CREATE, Set.of("resource3", "resource4")));
+                PermissionType.DELETE, Set.of("resource3", "resource4")));
 
     // when
     exporter.export(authorizationRecord);
@@ -691,7 +691,7 @@ class RdbmsExporterIT {
             AuthorizationResourceType.DECISION_REQUIREMENTS_DEFINITION,
             Map.of(
                 PermissionType.READ, Set.of("resource1"),
-                PermissionType.CREATE, Set.of("resource3")));
+                PermissionType.DELETE, Set.of("resource3")));
 
     // when
     exporter.export(authorizationUpdatedRecord);
@@ -711,7 +711,7 @@ class RdbmsExporterIT {
     assertThat(updatedAuthorization.permissions())
         .contains(new Permission(PermissionType.READ, Set.of("resource2")));
     assertThat(updatedAuthorization.permissions())
-        .contains(new Permission(PermissionType.CREATE, Set.of("resource4")));
+        .contains(new Permission(PermissionType.DELETE, Set.of("resource4")));
   }
 
   private void compareAuthorizations(
