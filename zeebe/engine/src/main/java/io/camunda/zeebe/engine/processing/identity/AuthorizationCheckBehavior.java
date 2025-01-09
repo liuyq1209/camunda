@@ -280,14 +280,6 @@ public final class AuthorizationCheckBehavior {
       return AuthorizedTenants.ANONYMOUS;
     }
 
-    // todo: this is a temporary solution until we adjust all the tests to fetch the tenant from the
-    // state
-    if (command.getAuthorizations().get(Authorization.AUTHORIZED_TENANTS) != null) {
-      final var authorizedTenants =
-          (List<String>) command.getAuthorizations().get(Authorization.AUTHORIZED_TENANTS);
-      return new AuthenticatedAuthorizedTenants(authorizedTenants);
-    }
-
     final var userKey = getUserKey(command);
     if (userKey.isPresent()) {
       return userState
