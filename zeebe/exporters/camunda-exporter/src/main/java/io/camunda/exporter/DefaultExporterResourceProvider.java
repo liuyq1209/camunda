@@ -95,6 +95,7 @@ import io.camunda.webapps.schema.descriptors.usermanagement.index.RoleIndex;
 import io.camunda.webapps.schema.descriptors.usermanagement.index.TenantIndex;
 import io.camunda.webapps.schema.descriptors.usermanagement.index.UserIndex;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.net.http.HttpClient;
 import java.util.Collection;
 import java.util.Set;
 
@@ -136,9 +137,11 @@ public class DefaultExporterResourceProvider implements ExporterResourceProvider
                 indexDescriptors.get(FormIndex.class).getFullQualifiedName()),
             new ExporterCacheMetrics("form", meterRegistry));
 
-    final M2mTokenManager m2mTokenManager = new M2mTokenManager(configuration.getNotifier());
+    final M2mTokenManager m2mTokenManager =
+        new M2mTokenManager(configuration.getNotifier(), HttpClient.newHttpClient());
     final IncidentNotifier incidentNotifier =
-        new IncidentNotifier(m2mTokenManager, processCache, configuration.getNotifier());
+        new IncidentNotifier(
+            m2mTokenManager, processCache, configuration.getNotifier(), HttpClient.newHttpClient());
     exportHandlers =
         Set.of(
             new RoleCreateUpdateHandler(
