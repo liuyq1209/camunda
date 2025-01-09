@@ -69,6 +69,26 @@ runs:
           echo "result=" >> $GITHUB_OUTPUT
         fi
 
+    - name: Get detailed info on flaky JUnit tests
+      id: get-detailed-flaky-junit-tests
+      if: ${{ steps.secrets.outputs.gcloud_sa_key != '' }}
+      shell: bash
+      run: |
+        # To support multi-line string in output we have to work with EOF delimiter
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#example-of-a-multiline-string
+        {
+          echo 'result<<EOF'
+          find . -iname 'TEST-*-FLAKY.xml' | xargs -d '\n' -n1 python3 testdetail.py
+          echo EOF
+        } >> $GITHUB_OUTPUT
+
+    - uses: camunda/infra-global-github-actions/submit-test-status@poc-detailed-flaky-test-stats
+      if: ${{ steps.secrets.outputs.gcloud_sa_key != '' }}
+      with:
+        big_query_table_name: ci-30-162810:dev_ci_analytics.test_status_v1
+        gcp_credentials_json: "${{ steps.secrets.outputs.gcloud_sa_key }}"
+        test_event_record: "${{ steps.get-detailed-flaky-junit-tests.outputs.result }}"
+
     - uses: camunda/infra-global-github-actions/submit-build-status@main
       if: ${{ always() && steps.secrets.outputs.gcloud_sa_key != '' }}
       with:
