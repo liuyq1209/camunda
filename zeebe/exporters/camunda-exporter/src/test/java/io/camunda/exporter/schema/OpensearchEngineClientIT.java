@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,13 +38,11 @@ import org.opensearch.client.opensearch.core.BulkRequest;
 import org.opensearch.client.opensearch.core.UpdateRequest;
 import org.opensearch.client.opensearch.generic.Requests;
 
-@DisabledIfSystemProperty(
-    named = SearchDBExtension.IT_OPENSEARCH_AWS_INSTANCE_URL_PROPERTY,
-    matches = "^(?=\\s*\\S).*$",
-    disabledReason = "Excluding from AWS OS IT CI")
 public class OpensearchEngineClientIT {
 
   @RegisterExtension private static SearchDBExtension searchDB = SearchDBExtension.create();
+
+  private static final String TEST_CONTEXT_MARKER = UUID.randomUUID().toString();
 
   private static OpenSearchClient openSearchClient;
   private static OpensearchEngineClient opensearchEngineClient;
@@ -54,17 +53,12 @@ public class OpensearchEngineClientIT {
     opensearchEngineClient = new OpensearchEngineClient(openSearchClient);
   }
 
-  @BeforeEach
-  public void refresh() throws IOException {
-    openSearchClient.indices().delete(req -> req.index("*"));
-    openSearchClient.indices().deleteIndexTemplate(req -> req.name("*"));
-  }
-
   @Test
   void shouldCreateIndexNormally() throws IOException {
     // given
     final var descriptor =
-        SchemaTestUtil.mockIndex("qualified_name", "alias", "index_name", "/mappings.json");
+        SchemaTestUtil.mockIndex(
+            "qualified_name", "alias", "index_name-" + TEST_CONTEXT_MARKER, "/mappings.json");
 
     // when
     final var indexSettings = new IndexSettings();
@@ -184,12 +178,16 @@ public class OpensearchEngineClientIT {
     // given
     final var index =
         SchemaTestUtil.mockIndex(
-            "index_qualified_name", "alias", "index_name", "/mappings-complex-property.json");
+            "index_qualified_name-" + TEST_CONTEXT_MARKER,
+            "alias-" + TEST_CONTEXT_MARKER,
+            "index_name-" + TEST_CONTEXT_MARKER,
+            "/mappings-complex-property.json");
 
     opensearchEngineClient.createIndex(index, new IndexSettings());
 
     // when
-    final var mappings = opensearchEngineClient.getMappings("*", MappingSource.INDEX);
+    final var mappings =
+        opensearchEngineClient.getMappings("*" + TEST_CONTEXT_MARKER + "*", MappingSource.INDEX);
 
     // then
     assertThat(mappings.size()).isEqualTo(1);
@@ -278,6 +276,10 @@ public class OpensearchEngineClientIT {
   }
 
   @Test
+  @DisabledIfSystemProperty(
+      named = SearchDBExtension.IT_OPENSEARCH_AWS_INSTANCE_URL_PROPERTY,
+      matches = "^(?=\\s*\\S).*$",
+      disabledReason = "Excluding from AWS OS IT CI - policies not allowed for shared DBs")
   void shouldCreateIndexLifeCyclePolicy() throws IOException {
     // given, when
     opensearchEngineClient.putIndexLifeCyclePolicy("policy_name", "20d");
